@@ -79,6 +79,7 @@ const App = () => {
   const [strikes, setStrikes] = useState(0);
   const [lowestDifficulty, setLowestDifficulty] = useState(100);
   const [gameMode, setGameMode] = useState<GameMode>('medium'); // high, medium, low, changing
+  const [sandboxMode, setSandboxMode] = useState(false);
   const [highScores, setHighScores] = useState<HighScores>(() => {
     try {
       const savedScores = localStorage.getItem('intuneHighScores');
@@ -231,11 +232,13 @@ const App = () => {
   const startNewGame = useCallback(() => {
     setScore(0);
     setStrikes(0);
-    setDifficultyPercent(100);
+    if (!sandboxMode) {
+      setDifficultyPercent(100);
+    }
     setLowestDifficulty(100);
     setGameState('ready');
     setFeedback('');
-  }, []);
+  }, [sandboxMode]);
 
   // Open settings
   const openSettings = useCallback(() => {
@@ -350,13 +353,17 @@ const App = () => {
     if (isCorrect) {
       setScore(prevScore => prevScore + 1);
       setFeedback('Correct!');
-      adjustDifficulty(true);
+      if (!sandboxMode) {
+        adjustDifficulty(true);
+      }
       playSoundEffect('correct');
       triggerAnimation('correct');
     } else {
       setFeedback('Oops! Incorrect!');
-      setStrikes(prevStrikes => prevStrikes + 1);
-      adjustDifficulty(false);
+      if (!sandboxMode) {
+        setStrikes(prevStrikes => prevStrikes + 1);
+        adjustDifficulty(false);
+      }
       playSoundEffect('incorrect');
       triggerAnimation('incorrect');
     }
@@ -364,10 +371,10 @@ const App = () => {
     setGameState('feedback');
     
     // Check if game over (3 strikes)
-    if (!isCorrect && strikes + 1 >= 3) {
+    if (!sandboxMode && !isCorrect && strikes + 1 >= 3) {
       // Update high scores
       updateHighScores(score, lowestDifficulty);
-      
+
       setTimeout(() => {
         playSoundEffect('gameOver');
         setGameState('gameOver');
@@ -379,8 +386,8 @@ const App = () => {
         startRound();
       }, 1500);
     }
-  }, [gameState, currentPitchIndex, secondPitch, strikes, score, lowestDifficulty, 
-      adjustDifficulty, startRound, playSoundEffect, triggerAnimation, updateHighScores]);
+  }, [gameState, currentPitchIndex, secondPitch, strikes, score, lowestDifficulty,
+      adjustDifficulty, startRound, playSoundEffect, triggerAnimation, updateHighScores, sandboxMode]);
 
   // Format the difficulty percentage with one decimal place
   const formatDifficulty = (percent: number) => {
@@ -462,12 +469,24 @@ const App = () => {
           <div className="mb-6 text-center">
             <div className="flex justify-between mb-2">
               <p className="text-xl">Score: {score}</p>
-              <p className="text-xl">Strikes: {strikes}/3</p>
+              <p className="text-xl">
+                {sandboxMode ? 'Sandbox' : `Strikes: ${strikes}/3`}
+              </p>
             </div>
             
             <div className="bg-gray-100 rounded-lg p-3 mb-3">
               <p className="text-sm text-gray-500">Current Difficulty</p>
               <p className="text-lg font-semibold">{formatDifficulty(difficultyPercent)}% of a half-step</p>
+              {sandboxMode && (
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={difficultyPercent}
+                  onChange={(e) => setDifficultyPercent(parseFloat(e.target.value))}
+                  className="w-full mt-2"
+                />
+              )}
             </div>
             
             <div className="bg-gray-100 rounded-lg p-3 mb-3">
@@ -493,6 +512,20 @@ const App = () => {
               <Play className="mr-2" size={20} />
               Start Game
             </button>
+
+            {sandboxMode && (
+              <div className="mb-4">
+                <label className="block mb-2 text-center">Difficulty: {formatDifficulty(difficultyPercent)}%</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={difficultyPercent}
+                  onChange={(e) => setDifficultyPercent(parseFloat(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            )}
             
             {/* High Scores Display */}
             <div className="mt-6">
@@ -562,21 +595,46 @@ const App = () => {
         {gameState === 'settings' && (
           <div className="mb-6">
             <p className="text-lg mb-4">Select First Pitch Register:</p>
-            
+
             <div className="grid grid-cols-1 gap-3 mb-6">
               {Object.keys(FREQUENCY_RANGES).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => changeGameMode(mode as GameMode)}
                   className={`py-3 px-4 rounded-lg font-semibold text-left pl-6 capitalize
-                    ${gameMode === mode 
-                      ? 'bg-indigo-600 text-white' 
+                    ${gameMode === mode
+                      ? 'bg-indigo-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                 >
                   {mode} First Pitch
                 </button>
               ))}
             </div>
+
+            <div className="flex items-center mb-4">
+              <input
+                id="sandboxToggle"
+                type="checkbox"
+                checked={sandboxMode}
+                onChange={() => setSandboxMode(!sandboxMode)}
+                className="mr-2"
+              />
+              <label htmlFor="sandboxToggle" className="text-lg">Sandbox Mode</label>
+            </div>
+
+            {sandboxMode && (
+              <div className="mb-6">
+                <label className="block mb-2">Difficulty: {formatDifficulty(difficultyPercent)}%</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={difficultyPercent}
+                  onChange={(e) => setDifficultyPercent(parseFloat(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            )}
             
             <button
               onClick={closeModal}
