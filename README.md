@@ -238,8 +238,7 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 ## 📧 Contact
 
 - **GitHub Issues**: [Report bugs or request features](https://github.com/yourusername/intune-ear-training/issues)
-- **Email**: your.email@example.com
-- **Twitter**: [@yourusername](https://twitter.com/yourusername)
+- **Email**: michael.hamel80@gmail.com
 
 ---
 
