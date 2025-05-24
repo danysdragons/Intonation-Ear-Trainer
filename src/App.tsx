@@ -1,52 +1,17 @@
-// import React from 'react';
-// import logo from './logo.svg';
-// import './App.css';
-
-// function App() {
-//   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <img src={logo} className="App-logo" alt="logo" />
-//         <p>
-//           Edit <code>src/App.tsx</code> and save to reload.
-//         </p>
-//         <a
-//           className="App-link"
-//           href="https://reactjs.org"
-//           target="_blank"
-//           rel="noopener noreferrer"
-//         >
-//           Learn React
-//         </a>
-//       </header>
-//     </div>
-//   );
-// }
-
-// export default App;
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, RefreshCw, Settings, Share2, Trophy, Volume2, Info } from 'lucide-react';
-import logo from './logo.svg';
 import './App.css';
+import Header from './components/Header';
+import ReadyScreen from './components/ReadyScreen';
+import InfoScreen from './components/InfoScreen';
+import SettingsScreen from './components/SettingsScreen';
+import GameOverScreen from './components/GameOverScreen';
+import PlayingScreen from './components/PlayingScreen';
+import AnswerButtons from './components/AnswerButtons';
+import AnimationOverlay from './components/AnimationOverlay';
+import { FREQUENCY_RANGES } from './constants';
+import { GameMode, Pitch, HighScores } from './types';
 
-// Define types for game modes and pitches
-
-type GameMode = 'high' | 'medium' | 'low' | 'changing';
-type Pitch = { frequency: number; isHigher: boolean };
-type HighScore = { score: number; difficulty: number };
-type HighScores = Record<GameMode, HighScore>;
-
-// Create an AudioContext for generating sounds
 let audioContext: AudioContext | null = null;
-
-// Define frequency ranges for different modes
-const FREQUENCY_RANGES: Record<GameMode, { min: number; max: number }> = {
-  high: { min: 660, max: 1320 }, // A5 to E6
-  medium: { min: 330, max: 660 }, // E4 to E5
-  low: { min: 110, max: 220 },    // A2 to A3
-  changing: { min: 110, max: 1320 } // Full range, will be randomized
-};
 
 // Define sound effects
 const SOUND_EFFECTS = {
@@ -390,8 +355,8 @@ const App = () => {
       adjustDifficulty, startRound, playSoundEffect, triggerAnimation, updateHighScores, sandboxMode]);
 
   // Format the difficulty percentage with one decimal place
-  const formatDifficulty = (percent: number) => {
-    return percent < 10 ? percent.toFixed(1) : Math.round(percent);
+  const formatDifficulty = (percent: number): string => {
+    return percent < 10 ? percent.toFixed(1) : Math.round(percent).toString();
   };
 
   // Handle keyboard input
@@ -426,54 +391,19 @@ const App = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
       <h1 className="text-3xl font-bold mb-6 text-indigo-700">InTune Ear Training</h1>
-      
-      {/* Animation overlay */}
-      {showAnimation && (
-        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
-          <div className={`text-9xl ${animationType === 'correct' ? 'text-green-500' : 'text-red-500'} transform transition-all duration-700 ${showAnimation ? 'scale-100 opacity-100' : 'scale-150 opacity-0'}`}>
-            {animationType === 'correct' ? '✓' : '✗'}
-          </div>
-        </div>
-      )}
-      
+
+      <AnimationOverlay show={showAnimation} type={animationType} />
+
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-        {/* Header with buttons */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">
-            {gameState === 'settings' ? 'Game Settings' : 
-             gameState === 'info' ? 'About InTune' : 'Ear Training'}
-          </h2>
-          
-          {gameState === 'ready' && (
-            <div className="flex">
-              <button
-                onClick={openInfo}
-                className="rounded-full p-2 text-gray-500 hover:bg-gray-100 mr-1"
-                aria-label="Information"
-              >
-                <Info size={20} />
-              </button>
-              <button
-                onClick={openSettings}
-                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
-                aria-label="Settings"
-              >
-                <Settings size={20} />
-              </button>
-            </div>
-          )}
-        </div>
-        
-        {/* Game Stats */}
+        <Header gameState={gameState} openInfo={openInfo} openSettings={openSettings} />
+
         {(gameState === 'playing' || gameState === 'feedback' || gameState === 'gameOver') && (
           <div className="mb-6 text-center">
             <div className="flex justify-between mb-2">
               <p className="text-xl">Score: {score}</p>
-              <p className="text-xl">
-                {sandboxMode ? 'Sandbox' : `Strikes: ${strikes}/3`}
-              </p>
+              <p className="text-xl">{sandboxMode ? 'Sandbox' : `Strikes: ${strikes}/3`}</p>
             </div>
-            
+
             <div className="bg-gray-100 rounded-lg p-3 mb-3">
               <p className="text-sm text-gray-500">Current Difficulty</p>
               <p className="text-lg font-semibold">{formatDifficulty(difficultyPercent)}% of a half-step</p>
@@ -488,266 +418,68 @@ const App = () => {
                 />
               )}
             </div>
-            
+
             <div className="bg-gray-100 rounded-lg p-3 mb-3">
               <p className="text-sm text-gray-500">Mode</p>
               <p className="text-lg font-semibold capitalize">{gameMode} First Pitch</p>
             </div>
-            
+
             {feedback && (
-              <p className={`text-lg font-semibold ${feedback === 'Correct!' ? 'text-green-600' : 'text-red-600'}`}>
-                {feedback}
-              </p>
+              <p className={`text-lg font-semibold ${feedback === 'Correct!' ? 'text-green-600' : 'text-red-600'}`}>{feedback}</p>
             )}
           </div>
         )}
-        
-        {/* Start Game Button */}
+
         {gameState === 'ready' && (
-          <div>
-            <button
-              onClick={startRound}
-              className="flex items-center justify-center w-full py-3 px-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 mb-4"
-            >
-              <Play className="mr-2" size={20} />
-              Start Game
-            </button>
+          <ReadyScreen
+            startRound={startRound}
+            sandboxMode={sandboxMode}
+            difficultyPercent={difficultyPercent}
+            setDifficultyPercent={setDifficultyPercent}
+            highScores={highScores}
+            formatDifficulty={formatDifficulty}
+          />
+        )}
 
-            {sandboxMode && (
-              <div className="mb-4">
-                <label className="block mb-2 text-center">Difficulty: {formatDifficulty(difficultyPercent)}%</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={difficultyPercent}
-                  onChange={(e) => setDifficultyPercent(parseFloat(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            )}
-            
-            {/* High Scores Display */}
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-2 flex items-center">
-                <Trophy size={18} className="mr-2 text-yellow-500" />
-                High Scores
-              </h3>
-              
-              <div className="bg-gray-50 rounded-lg p-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-2">Mode</th>
-                      <th className="text-right py-2">Score</th>
-                      <th className="text-right py-2">Best Difficulty</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(highScores).map(([mode, data]) => (
-                      <tr key={mode} className="border-b border-gray-100">
-                        <td className="py-2 capitalize">{mode}</td>
-                        <td className="text-right py-2">{(data as HighScore).score}</td>
-                        <td className="text-right py-2">{formatDifficulty((data as HighScore).difficulty)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Info Screen */}
-        {gameState === 'info' && (
-          <div className="mb-6">
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h3 className="font-bold mb-2">How to Play</h3>
-              <p className="mb-2">InTune helps you train your ear to distinguish small pitch differences:</p>
-              <ol className="list-decimal pl-5 mb-3">
-                <li className="mb-1">Listen carefully to two consecutive pitches</li>
-                <li className="mb-1">Determine if the second pitch is higher or lower than the first</li>
-                <li className="mb-1">The game becomes harder with each correct answer</li>
-                <li className="mb-1">Three incorrect answers ends the game</li>
-              </ol>
-              <p>Use different modes to practice with pitches in different registers.</p>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h3 className="font-bold mb-2">Keyboard Controls</h3>
-              <ul className="list-disc pl-5 mb-3">
-                <li className="mb-1">↑ (Up Arrow): Select "Higher"</li>
-                <li className="mb-1">↓ (Down Arrow): Select "Lower"</li>
-                <li className="mb-1">R: Replay the pitch pair</li>
-              </ul>
-            </div>
-            
-            <button
-              onClick={closeModal}
-              className="w-full py-3 px-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300"
-            >
-              Back to Game
-            </button>
-          </div>
-        )}
-        
-        {/* Settings Screen */}
+        {gameState === 'info' && <InfoScreen close={closeModal} />}
+
         {gameState === 'settings' && (
-          <div className="mb-6">
-            <p className="text-lg mb-4">Select First Pitch Register:</p>
-
-            <div className="grid grid-cols-1 gap-3 mb-6">
-              {Object.keys(FREQUENCY_RANGES).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => changeGameMode(mode as GameMode)}
-                  className={`py-3 px-4 rounded-lg font-semibold text-left pl-6 capitalize
-                    ${gameMode === mode
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                >
-                  {mode} First Pitch
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center mb-4">
-              <input
-                id="sandboxToggle"
-                type="checkbox"
-                checked={sandboxMode}
-                onChange={() => setSandboxMode(!sandboxMode)}
-                className="mr-2"
-              />
-              <label htmlFor="sandboxToggle" className="text-lg">Sandbox Mode</label>
-            </div>
-
-            {sandboxMode && (
-              <div className="mb-6">
-                <label className="block mb-2">Difficulty: {formatDifficulty(difficultyPercent)}%</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={difficultyPercent}
-                  onChange={(e) => setDifficultyPercent(parseFloat(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            )}
-            
-            <button
-              onClick={closeModal}
-              className="w-full py-3 px-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300"
-            >
-              Back to Game
-            </button>
-          </div>
+          <SettingsScreen
+            gameMode={gameMode}
+            changeGameMode={changeGameMode}
+            sandboxMode={sandboxMode}
+            setSandboxMode={setSandboxMode}
+            difficultyPercent={difficultyPercent}
+            setDifficultyPercent={setDifficultyPercent}
+            close={closeModal}
+          />
         )}
-        
-        {/* Playing State */}
+
         {gameState === 'playing' && (
-          <div className="flex flex-col mb-6 items-center">
-            <div className="flex justify-between w-full mb-4">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentPitchIndex > 0 ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
-                1
-              </div>
-              <div className="flex-1 h-1 self-center mx-2 bg-gray-200">
-                <div className={`h-1 bg-indigo-600 transition-all duration-500 ${currentPitchIndex > 0 ? 'w-full' : 'w-0'}`}></div>
-              </div>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentPitchIndex > 1 ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
-                2
-              </div>
-            </div>
-            
-            <p className="text-gray-700 mb-2">
-              {currentPitchIndex === 0 ? 'Get ready...' : 
-               currentPitchIndex === 1 ? 'Listening to first pitch...' : 
-               'Was the second pitch higher or lower?'}
-            </p>
-            
-            {/* Replay button */}
-            {currentPitchIndex === 2 && (
-              <button 
-                onClick={replayPitches}
-                className="flex items-center text-indigo-600 hover:text-indigo-800 text-sm mb-4"
-              >
-                <Volume2 size={16} className="mr-1" />
-                Replay Pitches (R)
-              </button>
-            )}
-          </div>
+          <PlayingScreen currentPitchIndex={currentPitchIndex} replayPitches={replayPitches} />
         )}
-        
-        {/* Game Over Screen */}
+
         {gameState === 'gameOver' && (
-          <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold mb-3">Game Over!</h2>
-            <p className="text-lg mb-2">Your Score: {score}</p>
-            <p className="text-lg mb-4">Smallest Pitch Difference: {formatDifficulty(lowestDifficulty)}% of a half-step</p>
-            
-            {/* New high score message */}
-            {highScores[gameMode].score === score && highScores[gameMode].difficulty === lowestDifficulty && score > 0 && (
-              <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mb-4 flex items-center">
-                <Trophy size={20} className="mr-2 text-yellow-500" />
-                <p className="text-yellow-800">New high score for {gameMode} mode!</p>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <button
-                onClick={startNewGame}
-                className="flex items-center justify-center py-3 px-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700"
-              >
-                <RefreshCw className="mr-2" size={18} />
-                Play Again
-              </button>
-              
-              <button
-                onClick={openSettings}
-                className="flex items-center justify-center py-3 px-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300"
-              >
-                <Settings className="mr-2" size={18} />
-                Settings
-              </button>
-            </div>
-          </div>
+          <GameOverScreen
+            score={score}
+            lowestDifficulty={lowestDifficulty}
+            gameMode={gameMode}
+            highScores={highScores}
+            startNewGame={startNewGame}
+            openSettings={openSettings}
+            formatDifficulty={formatDifficulty}
+          />
         )}
-        
-        {/* Answer Buttons */}
+
         {(gameState === 'playing' || gameState === 'feedback') && (
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => handleAnswer('higher')}
-              disabled={gameState !== 'playing' || currentPitchIndex < 2}
-              className={`py-4 px-6 rounded-lg font-bold text-lg transition-all duration-200
-                ${(gameState === 'playing' && currentPitchIndex >= 2) 
-                  ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105' 
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-              aria-label="Higher (Up Arrow)"
-            >
-              ↑ Higher
-            </button>
-            
-            <button
-              onClick={() => handleAnswer('lower')}
-              disabled={gameState !== 'playing' || currentPitchIndex < 2}
-              className={`py-4 px-6 rounded-lg font-bold text-lg transition-all duration-200
-                ${(gameState === 'playing' && currentPitchIndex >= 2) 
-                  ? 'bg-purple-600 text-white hover:bg-purple-700 hover:scale-105' 
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-              aria-label="Lower (Down Arrow)"
-            >
-              ↓ Lower
-            </button>
-          </div>
+          <AnswerButtons
+            handleAnswer={handleAnswer}
+            disabled={gameState !== 'playing' || currentPitchIndex < 2}
+          />
         )}
       </div>
-      
-      {/* Footer */}
-      <div className="mt-6 text-sm text-gray-500">
-        InTune Ear Training App Clone | Built with React
-      </div>
+
+      <div className="mt-6 text-sm text-gray-500">InTune Ear Training App Clone | Built with React</div>
     </div>
   );
 };
