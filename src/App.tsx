@@ -9,7 +9,7 @@ import PlayingScreen from './components/PlayingScreen';
 import AnswerButtons from './components/AnswerButtons';
 import AnimationOverlay from './components/AnimationOverlay';
 import { FREQUENCY_RANGES } from './constants';
-import { GameMode, Pitch, HighScores } from './types';
+import { GameMode, InstrumentType, NoiseType, Pitch, HighScores } from './types';
 
 let audioContext: AudioContext | null = null;
 
@@ -44,6 +44,10 @@ const App = () => {
   const [strikes, setStrikes] = useState(0);
   const [lowestDifficulty, setLowestDifficulty] = useState(100);
   const [gameMode, setGameMode] = useState<GameMode>('medium'); // high, medium, low, changing
+  const [instrument, setInstrument] = useState<InstrumentType>('sine');
+  const [backgroundNoise, setBackgroundNoise] = useState<NoiseType>('none');
+  const [noiseGainNode, setNoiseGainNode] = useState<GainNode | null>(null);
+  const [noiseSource, setNoiseSource] = useState<AudioBufferSourceNode | null>(null);
   const [sandboxMode, setSandboxMode] = useState(false);
   const [highScores, setHighScores] = useState<HighScores>(() => {
     try {
@@ -77,34 +81,204 @@ const App = () => {
     }
   }, [isAudioInitialized]);
 
+  // Generate noise buffers
+  const createNoiseBuffer = useCallback((type: 'white' | 'pink'): AudioBuffer => {
+    if (!audioContext) throw new Error('Audio context not initialized');
+    
+    const bufferSize = audioContext.sampleRate * 2; // 2 seconds of noise
+    const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    if (type === 'white') {
+      // White noise: equal power across all frequencies
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+    } else if (type === 'pink') {
+      // Pink noise: power decreases by 3dB per octave
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        data[i] *= 0.11; // Scale down
+        b6 = white * 0.115926;
+      }
+    }
+    
+    return buffer;
+  }, []);
+
+  // Start background noise
+  const startBackgroundNoise = useCallback(() => {
+    if (!audioContext || backgroundNoise === 'none') return;
+    
+    // Stop existing noise
+    if (noiseSource) {
+      noiseSource.stop();
+      setNoiseSource(null);
+    }
+    
+    try {
+      const buffer = createNoiseBuffer(backgroundNoise as 'white' | 'pink');
+      const source = audioContext.createBufferSource();
+      const gainNode = audioContext.createGain();
+      
+      source.buffer = buffer;
+      source.loop = true;
+      gainNode.gain.value = 0.05; // Low volume background noise
+      
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      source.start();
+      setNoiseSource(source);
+      setNoiseGainNode(gainNode);
+    } catch (error) {
+      console.error('Failed to start background noise:', error);
+    }
+  }, [audioContext, backgroundNoise, noiseSource, createNoiseBuffer]);
+
+  // Stop background noise
+  const stopBackgroundNoise = useCallback(() => {
+    if (noiseSource) {
+      noiseSource.stop();
+      setNoiseSource(null);
+      setNoiseGainNode(null);
+    }
+  }, [noiseSource]);
+
   // Generate a random frequency between min and max Hz based on the current mode
   const getFrequencyForMode = useCallback((): number => {
     const range = FREQUENCY_RANGES[gameMode];
     return range.min + Math.random() * (range.max - range.min);
   }, [gameMode]);
 
-  // Play a tone with the given frequency
-  const playTone = useCallback((frequency: number, duration: number = 1) => {
+  // Synthesize instrument sounds
+  const playInstrument = useCallback((frequency: number, duration: number = 1) => {
     if (!audioContext) return;
     
-    const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-    
-    oscillator.type = 'sine';
-    oscillator.frequency.value = frequency;
-    
-    // Apply envelope to avoid clicks
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.05);
-    gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + duration - 0.05);
-    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
-    
-    oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + duration);
-  }, []);
+    switch (instrument) {
+      case 'piano':
+        // Piano: fundamental + harmonics with exponential decay
+        [1, 2, 3, 4, 5].forEach((harmonic, index) => {
+          const osc = audioContext!.createOscillator();
+          const harmGain = audioContext!.createGain();
+          
+          osc.frequency.value = frequency * harmonic;
+          osc.type = 'sine';
+          
+          const amplitude = 0.3 / Math.pow(harmonic, 0.8);
+          harmGain.gain.setValueAtTime(0, audioContext!.currentTime);
+          harmGain.gain.linearRampToValueAtTime(amplitude, audioContext!.currentTime + 0.01);
+          harmGain.gain.exponentialRampToValueAtTime(0.001, audioContext!.currentTime + duration);
+          
+          osc.connect(harmGain);
+          harmGain.connect(gainNode);
+          osc.start();
+          osc.stop(audioContext!.currentTime + duration);
+        });
+        break;
+        
+      case 'violin':
+        // Violin: sawtooth with slight vibrato and bow noise
+        const violinOsc = audioContext.createOscillator();
+        const violinGain = audioContext.createGain();
+        const vibratoOsc = audioContext.createOscillator();
+        const vibratoGain = audioContext.createGain();
+        
+        violinOsc.type = 'sawtooth';
+        violinOsc.frequency.value = frequency;
+        
+        // Add subtle vibrato
+        vibratoOsc.frequency.value = 5; // 5Hz vibrato
+        vibratoGain.gain.value = 2; // Small frequency modulation
+        vibratoOsc.connect(vibratoGain);
+        vibratoGain.connect(violinOsc.frequency);
+        
+        violinGain.gain.setValueAtTime(0, audioContext.currentTime);
+        violinGain.gain.linearRampToValueAtTime(0.4, audioContext.currentTime + 0.1);
+        violinGain.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + duration - 0.1);
+        violinGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
+        
+        violinOsc.connect(violinGain);
+        violinGain.connect(gainNode);
+        violinOsc.start();
+        vibratoOsc.start();
+        violinOsc.stop(audioContext.currentTime + duration);
+        vibratoOsc.stop(audioContext.currentTime + duration);
+        break;
+        
+      case 'flute':
+        // Flute: sine wave with breath noise and harmonics
+        const fluteOsc = audioContext.createOscillator();
+        const fluteGain = audioContext.createGain();
+        const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.1, audioContext.sampleRate);
+        const noiseData = noiseBuffer.getChannelData(0);
+        
+        // Generate breath noise
+        for (let i = 0; i < noiseData.length; i++) {
+          noiseData[i] = (Math.random() * 2 - 1) * 0.02;
+        }
+        
+        const noiseSource = audioContext.createBufferSource();
+        const noiseGain = audioContext.createGain();
+        const noiseFilter = audioContext.createBiquadFilter();
+        
+        noiseSource.buffer = noiseBuffer;
+        noiseSource.loop = true;
+        noiseFilter.type = 'highpass';
+        noiseFilter.frequency.value = frequency * 2;
+        noiseGain.gain.value = 0.1;
+        
+        fluteOsc.type = 'sine';
+        fluteOsc.frequency.value = frequency;
+        
+        fluteGain.gain.setValueAtTime(0, audioContext.currentTime);
+        fluteGain.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+        fluteGain.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + duration - 0.05);
+        fluteGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
+        
+        fluteOsc.connect(fluteGain);
+        noiseSource.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(gainNode);
+        fluteGain.connect(gainNode);
+        
+        fluteOsc.start();
+        noiseSource.start();
+        fluteOsc.stop(audioContext.currentTime + duration);
+        noiseSource.stop(audioContext.currentTime + duration);
+        break;
+        
+      default:
+        // Basic waveforms (sine, sawtooth, square, triangle)
+        const oscillator = audioContext.createOscillator();
+        const basicGain = audioContext.createGain();
+        
+        oscillator.type = instrument as OscillatorType;
+        oscillator.frequency.value = frequency;
+        
+        basicGain.gain.setValueAtTime(0, audioContext.currentTime);
+        basicGain.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.05);
+        basicGain.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + duration - 0.05);
+        basicGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
+        
+        oscillator.connect(basicGain);
+        basicGain.connect(gainNode);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + duration);
+        break;
+    }
+  }, [instrument]);
 
   // Play a sequence of tones for sound effects
   const playSoundEffect = useCallback((effectName: keyof typeof SOUND_EFFECTS) => {
@@ -176,22 +350,27 @@ const App = () => {
   const startRound = useCallback(() => {
     initAudio();
     
+    // Start background noise if enabled
+    if (backgroundNoise !== 'none') {
+      startBackgroundNoise();
+    }
+    
     const { pitch1, pitch2 } = generatePitchPair();
     setGameState('playing');
     setCurrentPitchIndex(0);
     
     // Play the first pitch after a short delay
     setTimeout(() => {
-      playTone(pitch1, 1);
+      playInstrument(pitch1, 1);
       setCurrentPitchIndex(1);
       
       // Play the second pitch after the first one finishes
       setTimeout(() => {
-        playTone(pitch2, 1);
+        playInstrument(pitch2, 1);
         setCurrentPitchIndex(2);
       }, 1500);
     }, 500);
-  }, [generatePitchPair, playTone, initAudio]);
+  }, [generatePitchPair, playInstrument, initAudio, backgroundNoise, startBackgroundNoise]);
 
   // Start a new game
   const startNewGame = useCallback(() => {
@@ -201,9 +380,10 @@ const App = () => {
       setDifficultyPercent(100);
     }
     setLowestDifficulty(100);
+    stopBackgroundNoise();
     setGameState('ready');
     setFeedback('');
-  }, [sandboxMode]);
+  }, [sandboxMode, stopBackgroundNoise]);
 
   // Open settings
   const openSettings = useCallback(() => {
@@ -225,6 +405,23 @@ const App = () => {
     setGameMode(mode);
   }, []);
 
+  // Change instrument
+  const changeInstrument = useCallback((newInstrument: InstrumentType) => {
+    setInstrument(newInstrument);
+  }, []);
+
+  // Change background noise
+  const changeBackgroundNoise = useCallback((newNoise: NoiseType) => {
+    setBackgroundNoise(newNoise);
+    // Restart noise if game is active
+    if (gameState === 'playing' || gameState === 'feedback') {
+      stopBackgroundNoise();
+      if (newNoise !== 'none') {
+        setTimeout(startBackgroundNoise, 100);
+      }
+    }
+  }, [gameState, startBackgroundNoise, stopBackgroundNoise]);
+
   // Replay the current pair of pitches
   const replayPitches = useCallback(() => {
     if (!firstPitch || !secondPitch || gameState !== 'playing') return;
@@ -234,15 +431,15 @@ const App = () => {
     
     // Play the pitches again
     setTimeout(() => {
-      playTone(firstPitch.frequency, 1);
+      playInstrument(firstPitch.frequency, 1);
       setCurrentPitchIndex(1);
       
       setTimeout(() => {
-        playTone(secondPitch.frequency, 1);
+        playInstrument(secondPitch.frequency, 1);
         setCurrentPitchIndex(2);
       }, 1500);
     }, 500);
-  }, [firstPitch, secondPitch, gameState, playTone]);
+  }, [firstPitch, secondPitch, gameState, playInstrument]);
 
   // Check and update high scores
   const updateHighScores = useCallback((finalScore: number, smallestDiff: number) => {
@@ -341,6 +538,7 @@ const App = () => {
       updateHighScores(score, lowestDifficulty);
 
       setTimeout(() => {
+        stopBackgroundNoise();
         playSoundEffect('gameOver');
         setGameState('gameOver');
       }, 1500);
@@ -447,6 +645,10 @@ const App = () => {
           <SettingsScreen
             gameMode={gameMode}
             changeGameMode={changeGameMode}
+            instrument={instrument}
+            changeInstrument={changeInstrument}
+            backgroundNoise={backgroundNoise}
+            changeBackgroundNoise={changeBackgroundNoise}
             sandboxMode={sandboxMode}
             setSandboxMode={setSandboxMode}
             difficultyPercent={difficultyPercent}

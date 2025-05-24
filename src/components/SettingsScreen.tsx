@@ -1,10 +1,14 @@
 import React from 'react';
-import { GameMode } from '../types';
-import { FREQUENCY_RANGES } from '../constants';
+import { GameMode, InstrumentType, NoiseType } from '../types';
+import { FREQUENCY_RANGES, INSTRUMENT_OPTIONS, NOISE_OPTIONS } from '../constants';
 
 interface SettingsScreenProps {
   gameMode: GameMode;
   changeGameMode: (mode: GameMode) => void;
+  instrument: InstrumentType;
+  changeInstrument: (instrument: InstrumentType) => void;
+  backgroundNoise: NoiseType;
+  changeBackgroundNoise: (noise: NoiseType) => void;
   sandboxMode: boolean;
   setSandboxMode: (val: boolean) => void;
   difficultyPercent: number;
@@ -15,6 +19,10 @@ interface SettingsScreenProps {
 const SettingsScreen: React.FC<SettingsScreenProps> = ({
   gameMode,
   changeGameMode,
+  instrument,
+  changeInstrument,
+  backgroundNoise,
+  changeBackgroundNoise,
   sandboxMode,
   setSandboxMode,
   difficultyPercent,
@@ -36,6 +44,44 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
           }`}
         >
           {mode} First Pitch
+        </button>
+      ))}
+    </div>
+
+    <p className="text-lg mb-4">Select Sound:</p>
+
+    <div className="grid grid-cols-1 gap-2 mb-6">
+      {Object.entries(INSTRUMENT_OPTIONS).map(([type, info]) => (
+        <button
+          key={type}
+          onClick={() => changeInstrument(type as InstrumentType)}
+          className={`py-2 px-4 rounded-lg text-left text-sm ${
+            instrument === type
+              ? 'bg-indigo-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <div className="font-semibold">{info.name}</div>
+          <div className="text-xs opacity-75">{info.description}</div>
+        </button>
+      ))}
+    </div>
+
+    <p className="text-lg mb-4">Background Noise:</p>
+
+    <div className="grid grid-cols-1 gap-2 mb-6">
+      {Object.entries(NOISE_OPTIONS).map(([type, info]) => (
+        <button
+          key={type}
+          onClick={() => changeBackgroundNoise(type as NoiseType)}
+          className={`py-2 px-4 rounded-lg text-left text-sm ${
+            backgroundNoise === type
+              ? 'bg-indigo-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <div className="font-semibold">{info.name}</div>
+          <div className="text-xs opacity-75">{info.description}</div>
         </button>
       ))}
     </div>
