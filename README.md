@@ -1,6 +1,6 @@
 # Intonation Ear Trainer App
 
-A React-based web application that replicates the functionality of the Intonation Ear Trainer iOS ear training app. Train your ear to distinguish fine pitch differences and improve your musical intonation skills.
+A React-based web application that trains your ear to distinguish fine pitch differences and improve your musical intonation skills.
 
 ![Intonation Ear Trainer App Screenshot](https://via.placeholder.com/600x400/4F46E5/FFFFFF?text=Intonation+Ear+Trainer+App)
 
