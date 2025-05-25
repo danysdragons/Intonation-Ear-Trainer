@@ -1,4 +1,4 @@
-# InTune App - Improvement Recommendations
+# Intonation Ear Trainer - Improvement Recommendations
 
 This document outlines 12 potential improvement areas identified during app evaluation. Three enhanced audio features have been implemented (marked as ✅ Completed).
 

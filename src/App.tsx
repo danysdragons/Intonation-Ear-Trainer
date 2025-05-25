@@ -51,7 +51,7 @@ const App = () => {
   const [sandboxMode, setSandboxMode] = useState(false);
   const [highScores, setHighScores] = useState<HighScores>(() => {
     try {
-      const savedScores = localStorage.getItem('intuneHighScores');
+      const savedScores = localStorage.getItem('intonationEarTrainerHighScores');
       return savedScores ? JSON.parse(savedScores) : {
         high: { score: 0, difficulty: 100 },
         medium: { score: 0, difficulty: 100 },
@@ -459,7 +459,7 @@ const App = () => {
       
       // Save to localStorage
       try {
-        localStorage.setItem('intuneHighScores', JSON.stringify(newScores));
+        localStorage.setItem('intonationEarTrainerHighScores', JSON.stringify(newScores));
       } catch (e) {
         console.error('Failed to save high scores:', e);
       }
@@ -588,7 +588,7 @@ const App = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-      <h1 className="text-3xl font-bold mb-6 text-indigo-700">InTune Ear Training</h1>
+      <h1 className="text-3xl font-bold mb-6 text-indigo-700">Intonation Ear Trainer</h1>
 
       <AnimationOverlay show={showAnimation} type={animationType} />
 
@@ -681,7 +681,7 @@ const App = () => {
         )}
       </div>
 
-      <div className="mt-6 text-sm text-gray-500">InTune Ear Training App Clone | Built with React</div>
+      <div className="mt-6 text-sm text-gray-500">Intonation Ear Trainer App Clone | Built with React</div>
     </div>
   );
 };

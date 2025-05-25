@@ -1,12 +1,12 @@
-# InTune Ear Training App
+# Intonation Ear Trainer App
 
-A React-based web application that replicates the functionality of the InTune iOS ear training app. Train your ear to distinguish fine pitch differences and improve your musical intonation skills.
+A React-based web application that replicates the functionality of the Intonation Ear Trainer iOS ear training app. Train your ear to distinguish fine pitch differences and improve your musical intonation skills.
 
-![InTune App Screenshot](https://via.placeholder.com/600x400/4F46E5/FFFFFF?text=InTune+Ear+Training+App)
+![Intonation Ear Trainer App Screenshot](https://via.placeholder.com/600x400/4F46E5/FFFFFF?text=Intonation+Ear+Trainer+App)
 
-## 🎵 What is InTune?
+## 🎵 What is Intonation Ear Trainer?
 
-InTune is an ear training tool designed to help musicians develop their ability to perceive subtle pitch differences. Unlike traditional interval training apps that focus on identifying named musical intervals, InTune specifically targets **pitch acuity** - the ability to distinguish whether one pitch is higher or lower than another by very small amounts.
+Intonation Ear Trainer is an ear training tool designed to help musicians develop their ability to perceive subtle pitch differences. Unlike traditional interval training apps that focus on identifying named musical intervals, Intonation Ear Trainer specifically targets **pitch acuity** - the ability to distinguish whether one pitch is higher or lower than another by very small amounts.
 
 This skill is essential for:
 - **Intonation** - Playing or singing in tune
@@ -204,14 +204,14 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 🎵 Musical Background
 
-### What Makes InTune Different
+### What Makes Intonation Ear Trainer Different
 
 Traditional ear training apps focus on:
 - **Interval Recognition**: Identifying named intervals (Major 3rd, Perfect 5th, etc.)
 - **Scale Degrees**: Recognizing notes within a key context
 - **Chord Progressions**: Harmonic relationships
 
-InTune specifically targets:
+Intonation Ear Trainer specifically targets:
 - **Microtonal Perception**: Differences smaller than semitones
 - **Intonation Training**: Pure pitch discrimination
 - **Performance Skills**: Practical tuning abilities
@@ -230,7 +230,7 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## 🙏 Acknowledgments
 
-- Original InTune iOS app developers for the concept
+- Original Intonation Ear Trainer iOS app developers for the concept
 - Web Audio API documentation and community
 - React and modern web development ecosystem
 - Music education research supporting ear training methodologies

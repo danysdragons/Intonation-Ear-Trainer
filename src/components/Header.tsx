@@ -13,7 +13,7 @@ const Header: React.FC<HeaderProps> = ({ gameState, openInfo, openSettings }) =>
       {gameState === 'settings'
         ? 'Game Settings'
         : gameState === 'info'
-        ? 'About InTune'
+        ? 'About Intonation Ear Trainer'
         : 'Ear Training'}
     </h2>
     {gameState === 'ready' && (

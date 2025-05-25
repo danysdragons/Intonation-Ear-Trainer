@@ -8,7 +8,7 @@ const InfoScreen: React.FC<InfoScreenProps> = ({ close }) => (
   <div className="mb-6">
     <div className="bg-gray-50 rounded-lg p-4 mb-4">
       <h3 className="font-bold mb-2">How to Play</h3>
-      <p className="mb-2">InTune helps you train your ear to distinguish small pitch differences:</p>
+      <p className="mb-2">Intonation Ear Trainer helps you train your ear to distinguish small pitch differences:</p>
       <ol className="list-decimal pl-5 mb-3">
         <li className="mb-1">Listen carefully to two consecutive pitches</li>
         <li className="mb-1">Determine if the second pitch is higher or lower than the first</li>
